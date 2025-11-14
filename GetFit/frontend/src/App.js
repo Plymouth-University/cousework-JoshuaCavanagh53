@@ -1,7 +1,6 @@
-import logo from './logo.svg';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LoginPage from './login.js';
-import MainPage from './main.js';
+import LoginPage from './Login.js';
+import MainPage from './Main.js';
 import './App.css';
 
 function App() {

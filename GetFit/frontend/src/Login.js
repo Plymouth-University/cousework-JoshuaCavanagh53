@@ -7,7 +7,7 @@ import {
   Paper,
   InputAdornment,
 } from "@mui/material";
-import "./login.css";
+
 
 const LoginPage = () => {
   const usernameSVG = (
@@ -63,10 +63,7 @@ const LoginPage = () => {
       alignItems="center"
       minHeight="100vh"
       sx={{
-        backgroundImage: `url("/gym_image.png")`,
-        backgroundRepeat: "no-repeat",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        background:"#2b2d2eff"
       }}
     >
       <Paper
