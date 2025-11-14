@@ -1,16 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
+
 import {
   Box,
   Typography,
 } from "@mui/material";
 
 const MainPage = () => {
+  
   return (
+    
+    // Overall Container
     <Box
       display="flex"
       minHeight="100vh"
       sx={{
-        bgcolor: '#1E1E1C', // Darker, more modern background
+        bgcolor: '#1E1E1C', 
       }}
     >
       {/* Sidebar */}
