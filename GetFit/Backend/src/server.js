@@ -14,6 +14,11 @@ app.use(cors({ origin: "http://localhost:3000" }));
 // Middleware to parse JSON
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.url);
+  next();
+});
+
 // Routes
 app.use("/api/users", userRoutes);
 

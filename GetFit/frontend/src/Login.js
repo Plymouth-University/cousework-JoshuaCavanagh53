@@ -9,17 +9,21 @@ import {
   Collapse,
 } from "@mui/material";
 
+import { useNavigate } from "react-router-dom";
+
 // LoginPage component
 const LoginPage = () => {
   
   // State to toggle between login and registration forms
   const [formMode, setFormMode] = useState("login");
 
-  // State to hold registration form data
+  // State to hold form data
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  
+  // Navigation hook
+  const navigate = useNavigate();
   // Render the component
   return (
     
@@ -60,6 +64,7 @@ const LoginPage = () => {
                 label="Username"
                 margin="normal"
                 variant="outlined"
+                onChange={(e) => setUsername(e.target.value)}
                 sx={{
                   bgcolor: "#606060",
                   input: { color: "#AAAAAA" },
@@ -77,6 +82,7 @@ const LoginPage = () => {
                 type="password"
                 margin="normal"
                 variant="outlined"
+                onChange={(e) => setPassword(e.target.value)}
                 sx={{
                   bgcolor: "#606060",
                   input: { color: "#AAAAAA" },
@@ -92,6 +98,33 @@ const LoginPage = () => {
                 fullWidth
                 variant="contained"
                 sx={{ mt: 2, bgcolor: "#b84d00ff" }}
+                onClick={async () => {
+                  // Prepare user data
+                  const userData = { username, password }; 
+
+                  console.log("Sending login data:", userData);
+                  try {
+                    const response = await fetch("http://localhost:5000/api/users/login", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(userData),
+                    });
+
+                    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+
+                    const result = await response.json();
+
+                    // Save token for protected routes
+                    localStorage.setItem("token", result.token);
+
+                    // Redirect to /home
+                    navigate("/home");
+                    alert("Login successful");
+                    setFormMode("login");
+                  } catch (err) {
+                    console.error("Error fetching data:", err);
+                  }
+                }}
               >
                 <Typography fontSize="20px" fontWeight="bold">
                   Login
@@ -210,7 +243,7 @@ const LoginPage = () => {
                     }
                     // Parse the JSON response
                     const result = await response.json();
-                    alert(result.message); 
+                    alert("registration successful"); 
                     setFormMode("login"); 
                   } catch (err) {
                     console.error("Error sending data:", err);
