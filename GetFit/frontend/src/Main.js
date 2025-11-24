@@ -25,7 +25,7 @@ const MainPage = () => {
         sx={{
           width: '18%',
           minHeight: '100vh',
-          bgcolor: '#2A2A2A', 
+          bgcolor: '#202020ff', 
           padding: 0,
           display: 'flex',
           flexDirection: 'column',
@@ -190,9 +190,10 @@ const MainPage = () => {
       {/* Main Content Area */}
       <Box
         sx={{
-          flexGrow: 1,
+          flex: 1,
           minHeight: '100vh',
-          bgcolor: '#1E1E1C',
+          width: '100%',
+          bgcolor: '#2a2a28ff',
         }}
       >
         {/* Main content goes here */}
@@ -200,7 +201,7 @@ const MainPage = () => {
         <Typography
           sx={{
             color: 'white',
-            margin: 4,
+            margin: 2,
             fontSize: '20px',
             fontWeight: 'bold',
             fontFamily: 'Arial, sans-serif'
@@ -211,88 +212,169 @@ const MainPage = () => {
         <Box
           sx={{
             display: 'flex',
-            flexDirection: 'row'      
+            flexDirection: 'row',
+            width: '100%',
+            margin: 0,
+            padding: 0,
+            justifyContent: 'start',
+            alignItems: 'flex-start',
+
           }}
         >
           <Box 
             sx={{
-              padding: 4,
-              minWidth: '20%',
-              minHeight: 'auto',
+              padding: 2,
+              minWidth: '17%',
+              height: 'auto',
               background: '#FF6F00',
-              margin: 4,
+              margin: 2,
               borderRadius: 4,
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
+              alignItems: 'flex-start',
 
 
             }}>
               <Typography
                   sx={{ 
                       color: 'white',
-                      fontSize: '20px',
+                      fontSize: '15px',
                       fontWeight: 'bold',
                       fontFamily: 'Arial, sans-serif',
                       textAlign: 'center'
 
                   }}
                   >
-                      Current Weight
+                      This months visits
                   </Typography>
                 
               <Typography
                   sx={{ 
                       color: 'white',
-                      fontSize: '50px',
+                      fontSize: '30px',
                       fontFamily: 'Arial, sans-serif',
                       textAlign: 'center',
                       fontWeight: 'bold',
                       marginTop: 2
                       }}>
-                          75 kg
+                          17 visits
                       </Typography>
 
           </Box>
 
           <Box 
             sx={{
-              padding: 4,
-              width: '20%',
+              padding: 2,
+              minWidth: '17%',
               height: 'auto',
               background: '#FF6F00',
-              margin: 4,
+              margin: 2,
               borderRadius: 4,
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
+              alignItems: 'flex-start',
 
 
             }}>
               <Typography
                   sx={{ 
                       color: 'white',
-                      fontSize: '20px',
+                      fontSize: '15px',
                       fontWeight: 'bold',
                       fontFamily: 'Arial, sans-serif',
                       textAlign: 'center'
 
                   }}
                   >
-                    Total workouts this month
+                    Current Weight
                   </Typography>
               
               <Typography
                   sx={{ 
                       color: 'white',
-                      fontSize: '50px',
+                      fontSize: '30px',
                       fontFamily: 'Arial, sans-serif',
                       textAlign: 'center',
                       fontWeight: 'bold',
                       marginTop: 2
                       }}>
-                          18 visits
+                          70kg
                       </Typography>
+          </Box>
+
+          <Box 
+            sx={{
+              padding: 2,
+              minWidth: '17%',
+              height: 'auto',
+              background: '#FF6F00',
+              margin: 2,
+              borderRadius: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+
+
+            }}>
+              <Typography
+                  sx={{ 
+                      color: 'white',
+                      fontSize: '15px',
+                      fontWeight: 'bold',
+                      fontFamily: 'Arial, sans-serif',
+                      textAlign: 'center'
+
+                  }}
+                  >
+                    Target Weight
+                  </Typography>
+              
+              <Typography
+                  sx={{ 
+                      color: 'white',
+                      fontSize: '30px',
+                      fontFamily: 'Arial, sans-serif',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      marginTop: 2
+                      }}>
+                          72kg
+                      </Typography>
+          </Box>
+
+          <Box 
+            sx={{
+              padding: 4,
+              minWidth: '17%',
+              height: '500px',
+              background: '#252525ff',
+              margin: 2,
+              borderRadius: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+
+
+            }}>
+              <Typography
+                  sx={{ 
+                      color: 'white',
+                      fontSize: '15px',
+                      fontWeight: 'bold',
+                      fontFamily: 'Arial, sans-serif',
+                      textAlign: 'start',
+                      margin: 0,
+                      borderBottom: '2px solid white',
+                      paddingBottom: 1,
+                      
+
+
+                  }}
+                  >
+                    Friends list
+                  </Typography>
+              
+              
           </Box>
         </Box>
       </Box>
