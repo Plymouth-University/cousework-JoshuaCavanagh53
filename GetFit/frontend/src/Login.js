@@ -117,8 +117,8 @@ const LoginPage = () => {
                     // Save token for protected routes
                     localStorage.setItem("token", result.token);
 
-                    // Redirect to /home
-                    navigate("/home");
+                    // Redirect to /overview
+                    navigate("/overview");
                     alert("Login successful");
                     setFormMode("login");
                   } catch (err) {
