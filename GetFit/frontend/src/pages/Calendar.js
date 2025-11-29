@@ -1,9 +1,11 @@
 import { Box, Typography, Avatar, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 const Calendar = () => {
-  
-    // Navigation hook
+  // Navigation hook
   const navigate = useNavigate();
 
   return (
@@ -108,17 +110,27 @@ const Calendar = () => {
       </Box>
 
       {/* Main Content Area */}
-      <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: "#1E1E1C", p: 3 }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: "100vh",
+          bgcolor: "#1E1E1C",
+          overflow: "hidden",
+        }}
+      >
         <Typography
           sx={{
             color: "#F5F5F5",
-            fontSize: "22px",
+            margin: 2,
+            fontSize: "20px",
             fontWeight: "600",
-            mb: 3,
+            fontFamily: "Arial, sans-serif",
+            margin: 3,
           }}
         >
           Calendar
         </Typography>
+
       </Box>
     </Box>
   );

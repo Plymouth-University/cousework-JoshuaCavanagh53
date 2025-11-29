@@ -2,11 +2,10 @@ import { Box, Typography, Avatar, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const Account = () => {
+  // Navigation hook
+  const navigate = useNavigate();
 
-    // Navigation hook
-    const navigate = useNavigate();
-
-    return (
+  return (
     <Box display="flex" minHeight="100vh" sx={{ bgcolor: "#1E1E1C" }}>
       {/* Sidebar */}
       <Box
@@ -108,13 +107,22 @@ const Account = () => {
       </Box>
 
       {/* Main Content Area */}
-      <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: "#1E1E1C", p: 3 }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: "100vh",
+          bgcolor: "#1E1E1C",
+          overflow: "hidden",
+        }}
+      >
         <Typography
           sx={{
             color: "#F5F5F5",
-            fontSize: "22px",
+            margin: 2,
+            fontSize: "20px",
             fontWeight: "600",
-            mb: 3,
+            fontFamily: "Arial, sans-serif",
+            margin: 3
           }}
         >
           Account Settings
@@ -131,6 +139,7 @@ const Account = () => {
             display: "flex",
             alignItems: "center",
             gap: 3,
+            margin: 3,
           }}
         >
           <Avatar sx={{ width: 80, height: 80, bgcolor: "#FF6F00" }}>U</Avatar>
@@ -159,6 +168,7 @@ const Account = () => {
             bgcolor: "#2C2C29",
             borderRadius: 3,
             boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+            margin: 3,
           }}
         >
           <Typography sx={{ color: "#F5F5F5", fontWeight: "600", mb: 2 }}>
