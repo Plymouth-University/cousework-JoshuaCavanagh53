@@ -1,0 +1,41 @@
+const Weight = require("../models/weight");
+const Lift = require("../models/lift");
+
+// Weight
+exports.addWeightEntry = async (req, res) => {
+  const { date, weightKg, targetKg } = req.body;
+
+  try {
+    const weightEntry = await Weight.create({
+      userId: req.user,
+      date,
+      weightKg,
+      targetKg,
+    });
+    res
+      .status(201)
+      .json({ weightEntry, message: "Weight entry added successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Lift
+exports.addLiftEntry = async (req, res) => {
+  const { exercise, date, sets } = req.body;
+
+  try {
+    const liftEntry = await Lift.create({
+      userId: req.user,
+      exercise,
+      date,
+      sets,
+      targetSets,
+    });
+    res
+      .status(201)
+      .json({ liftEntry, message: "Lift entry added successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

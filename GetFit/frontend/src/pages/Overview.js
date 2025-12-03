@@ -1,13 +1,37 @@
-
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, Avatar, Button } from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
 import { BarChart } from "@mui/x-charts/BarChart";
+import { useEffect, useState } from "react";
+import EditIcon from "@mui/icons-material/Edit";
 
 const Overview = () => {
-  
   // Navigation hook
   const navigate = useNavigate();
-  
+
+  // Store visits
+  const [visits, setVisits] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          "http://localhost:5000/api/users/profile",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = await response.json();
+        setVisits(data.visits);
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+    fetchUserData();
+  }, []);
+
   return (
     <Box display="flex" minHeight="100vh" sx={{ bgcolor: "#1E1E1C" }}>
       {/* Sidebar */}
@@ -125,7 +149,7 @@ const Overview = () => {
             fontSize: "20px",
             fontWeight: "600",
             fontFamily: "Arial, sans-serif",
-            margin: 3
+            margin: 3,
           }}
         >
           Welcome back, User!
@@ -148,9 +172,12 @@ const Overview = () => {
             {/* Stat cards */}
             <Box sx={{ display: "flex", gap: 2 }}>
               {[
-                { title: "This months visits", value: "17 visits" },
-                { title: "Current Weight", value: "70kg" },
-                { title: "Target Weight", value: "72kg" },
+                {
+                  title: "This months visits",
+                  value: visits !== null ? visits : "Loading...",
+                },
+                { title: "Current Weight", value: "" },
+                { title: "Target Weight", value: "" },
               ].map((card, i) => (
                 <Box
                   key={i}
@@ -160,10 +187,7 @@ const Overview = () => {
                     bgcolor:
                       card.title === "This months visits"
                         ? "#FF6F00"
-                        : card.title === "Current Weight"
-                        ? "#2b2929ff"
                         : "#2b2929ff",
-
                     borderRadius: 3,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
                     display: "flex",
@@ -174,6 +198,7 @@ const Overview = () => {
                       transform: "translateY(-4px)",
                       boxShadow: "0 6px 16px rgba(0,0,0,0.6)",
                     },
+                    position: "relative", 
                   }}
                 >
                   <Typography
@@ -196,6 +221,24 @@ const Overview = () => {
                   >
                     {card.value}
                   </Typography>
+
+                  {/* Edit button for weight cards */}
+                  {(card.title === "Current Weight" ||
+                    card.title === "Target Weight") && (
+                    <IconButton
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        color: "#AAAAAA",
+                        "&:hover": { color: "#FF6F00" },
+                      }}
+                      onClick={() => console.log(`Edit ${card.title}`)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
                 </Box>
               ))}
             </Box>
