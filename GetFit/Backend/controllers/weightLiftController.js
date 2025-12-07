@@ -39,3 +39,12 @@ exports.addLiftEntry = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getWeightEntries = async (req, res) => {
+  try {
+    const weights = await Weight.find({ userId: req.user }).sort({ date: -1 });
+    res.json(weights);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

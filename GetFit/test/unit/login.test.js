@@ -3,7 +3,7 @@ const expect = chai.expect;
 const suite = require("mocha").suite;
 const test = require("mocha").test;
 
-// Extracted helper for testing
+// Toggle form function for testing
 function toggleFormMode(currentMode) {
   return currentMode === "login" ? "register" : "login";
 }

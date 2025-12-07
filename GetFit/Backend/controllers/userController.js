@@ -2,8 +2,6 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
-
-
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
@@ -80,10 +78,27 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// Increment visits for the logged-in user
+const incrementVisits = async (req, res) => {
+  try {
+    const user = await User.findById(req.user); 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.visits = (user.visits || 0) + 1; 
+    await user.save();
+
+    res.json({ visits: user.visits });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 module.exports = {
   generateToken,
   registerUser,
   loginUser,
   getUserProfile,
+  incrementVisits,
 };

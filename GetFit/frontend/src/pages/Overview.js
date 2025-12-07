@@ -1,15 +1,105 @@
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, IconButton } from "@mui/material";
-import { BarChart } from "@mui/x-charts/BarChart";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogActions,
+  DialogTitle,
+  TextField,
+  Button,
+} from "@mui/material";
+import { LineChart, BarChart } from "@mui/x-charts";
 import { useEffect, useState } from "react";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
 
 const Overview = () => {
   // Navigation hook
   const navigate = useNavigate();
 
+  // Store user weight and target weight
+  const [currentWeight, setCurrentWeight] = useState(null);
+  const [targetWeight, setTargetWeight] = useState(null);
+
+  // UseState to store whether the user is editing their current or target weight
+  const [open, setOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState(null);
+  // UseState to store weight value
+  const [value, setValue] = useState("");
+
+  // Handle the chart state
+  const [chartType, setChartType] = useState("weight"); // change between weight and visits
+
   // Store visits
   const [visits, setVisits] = useState(null);
+
+  // Handle editing visits
+  const handleVisits = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/users/visits", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setVisits(data.visits); 
+      } else {
+        console.error("Error updating visits:", data.message);
+      }
+    } catch (err) {
+      console.error("Error posting visits:", err);
+    }
+  };
+
+  // Handle saving card edits
+  const handleOpen = (card) => {
+    setEditingCard(card);
+    setValue(card.value);
+    setOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // Build request body depending on which card is being edited
+      const body =
+        editingCard?.title === "Current Weight"
+          ? { date: new Date(), weightKg: value, targetKg: targetWeight }
+          : { date: new Date(), weightKg: currentWeight, targetKg: value };
+
+      const response = await fetch("http://localhost:5000/api/weights", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (editingCard?.title === "Current Weight") {
+          setCurrentWeight(data.weightEntry.weightKg);
+        } else if (editingCard?.title === "Target Weight") {
+          setTargetWeight(data.weightEntry.targetKg);
+        }
+        setOpen(false);
+      } else {
+        console.error("Error saving weight:", data.message);
+      }
+    } catch (err) {
+      console.error("Error posting weight:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -30,6 +120,30 @@ const Overview = () => {
       }
     };
     fetchUserData();
+  }, []);
+
+  // UseEffect to handle fetching current and target weight values
+  useEffect(() => {
+    const fetchWeights = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5000/api/weights", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+
+        if (data.length > 0) {
+          const latest = data[0];
+          setCurrentWeight(latest.weightKg);
+          setTargetWeight(latest.targetKg);
+        }
+      } catch (err) {
+        console.error("Error fetching weights:", err);
+      }
+    };
+    fetchWeights();
   }, []);
 
   return (
@@ -176,8 +290,8 @@ const Overview = () => {
                   title: "This months visits",
                   value: visits !== null ? visits : "Loading...",
                 },
-                { title: "Current Weight", value: "" },
-                { title: "Target Weight", value: "" },
+                { title: "Current Weight", value: currentWeight ?? "" },
+                { title: "Target Weight", value: targetWeight ?? "" },
               ].map((card, i) => (
                 <Box
                   key={i}
@@ -198,7 +312,7 @@ const Overview = () => {
                       transform: "translateY(-4px)",
                       boxShadow: "0 6px 16px rgba(0,0,0,0.6)",
                     },
-                    position: "relative", 
+                    position: "relative",
                   }}
                 >
                   <Typography
@@ -224,7 +338,8 @@ const Overview = () => {
 
                   {/* Edit button for weight cards */}
                   {(card.title === "Current Weight" ||
-                    card.title === "Target Weight") && (
+                    card.title === "Target Weight" ||
+                    card.title === "This months visits") && (
                     <IconButton
                       size="small"
                       sx={{
@@ -234,16 +349,51 @@ const Overview = () => {
                         color: "#AAAAAA",
                         "&:hover": { color: "#FF6F00" },
                       }}
-                      onClick={() => console.log(`Edit ${card.title}`)}
+                      onClick={() => {
+                        if (card.title === "This months visits") {
+                          // Increment the visits
+                          setVisits((prev) => (prev !== null ? prev + 1 : 1));
+                          // Post updated visit count
+                          handleVisits();
+                        } else {
+                          handleOpen(card);
+                        }
+                      }}
                     >
-                      <EditIcon fontSize="small" />
+                      {card.title === "This months visits" ? (
+                        <AddIcon fontSize="small" />
+                      ) : (
+                        <EditIcon fontSize="small" />
+                      )}
                     </IconButton>
                   )}
                 </Box>
               ))}
+
+              <Dialog open={open} onClose={() => setOpen(false)}>
+                <DialogTitle>Edit {editingCard?.title}</DialogTitle>
+                <DialogContent>
+                  <TextField
+                    autoFocus
+                    margin="dense"
+                    label="Enter new value"
+                    type="text"
+                    fullWidth
+                    variant="outlined"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSave} variant="contained">
+                    Save
+                  </Button>
+                </DialogActions>
+              </Dialog>
             </Box>
 
-            {/* Visits Graph card */}
+            {/* Visits Graph or body weight graph card */}
             <Box
               sx={{
                 p: 3,
@@ -255,45 +405,151 @@ const Overview = () => {
                 flexDirection: "column",
               }}
             >
-              <Typography sx={{ color: "#F5F5F5", fontWeight: "600", mb: 2 }}>
-                Visits Graph
-              </Typography>
+              {/* Header with toggle buttons */}
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+              >
+                <Typography sx={{ color: "#F5F5F5", fontWeight: "600" }}>
+                  {chartType === "weight"
+                    ? "Body Weight Graph"
+                    : "Visits Graph"}
+                </Typography>
+                <Box>
+                  <Button
+                    variant={chartType === "weight" ? "contained" : "outlined"}
+                    size="small"
+                    sx={{
+                      mr: 1,
+                      bgcolor:
+                        chartType === "weight" ? "transparent" : "#2C2C29",
+                      color: "#F5F5F5",
+                      border:
+                        chartType === "weight" ? "2px solid #FFF" : "none",
+                      boxShadow:
+                        chartType !== "weight"
+                          ? "0 2px 6px rgba(0,0,0,0.5)"
+                          : "none",
+                      "&:hover": {
+                        bgcolor: "#3A3A36",
+                      },
+                    }}
+                    onClick={() => setChartType("weight")}
+                  >
+                    Weight
+                  </Button>
+                  <Button
+                    variant={chartType === "visits" ? "contained" : "outlined"}
+                    size="small"
+                    sx={{
+                      bgcolor:
+                        chartType === "visits" ? "transparent" : "#2C2C29",
+                      color: "#F5F5F5",
+                      border:
+                        chartType === "visits" ? "2px solid #FFF" : "none",
+                      boxShadow:
+                        chartType !== "visits"
+                          ? "0 2px 6px rgba(0,0,0,0.5)"
+                          : "none",
+                      "&:hover": {
+                        bgcolor: "#3A3A36",
+                      },
+                    }}
+                    onClick={() => setChartType("visits")}
+                  >
+                    Visits
+                  </Button>
+                </Box>
+              </Box>
 
-              <BarChart
-                xAxis={[
-                  {
-                    data: [
-                      "Jan",
-                      "Feb",
-                      "Mar",
-                      "Apr",
-                      "May",
-                      "Jun",
-                      "Jul",
-                      "Aug",
-                      "Sep",
-                      "Oct",
-                      "Nov",
-                      "Dec",
-                    ],
-                  },
-                ]}
-                series={[
-                  {
-                    data: [17, 15, 15, 18, 17, 15, 12, 14, 19, 12, 17, 15],
-                    color: "#FF6F00",
-                  },
-                ]}
-                width={1100}
-                height={500}
-                margin={{ top: 20, right: 20, bottom: 40, left: 20 }}
-                sx={{
-                  "& .MuiChartsAxis-root text": { fill: "#F5F5F5" },
-                  "& .MuiChartsLegend-root text": { fill: "#B0B0B0" },
-                  "& .MuiChartsAxis-line": { stroke: "#B0B0B0" },
-                  "& .MuiChartsAxis-tick": { stroke: "#B0B0B0" },
-                }}
-              />
+              {/* Conditional rendering */}
+              {chartType === "weight" ? (
+                <LineChart
+                  width={1000}
+                  height={500}
+                  series={[
+                    {
+                      data: [69, 69.2, 69.3, 69.5, 69.9, 70, 70.2],
+                      label: "Weight (kg)",
+                      color: "#FF6F00",
+                      lineSmoothing: 0.3,
+                    },
+                  ]}
+                  xAxis={[
+                    {
+                      scaleType: "band",
+                      data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                      label: "Days",
+                      labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
+                      tickLabelProps: {
+                        sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                      },
+                      lineProps: { sx: { stroke: "#555" } },
+                      tickProps: { sx: { stroke: "#555" } },
+                    },
+                  ]}
+                  yAxis={[
+                    {
+                      label: "Weight (kg)",
+                      labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
+                      tickLabelProps: {
+                        sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                      },
+                      lineProps: { sx: { stroke: "#555" } },
+                      tickProps: { sx: { stroke: "#555" } },
+                    },
+                  ]}
+                  sx={{
+                    "& .MuiChartsLegend-root": { display: "none" },
+                    "& .MuiChartsTooltip-root": {
+                      backgroundColor: "#1E1E1E",
+                      color: "#FFF",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                    },
+                    "& .MuiChartsAxis-root line": { stroke: "#555" },
+                    "& .MuiChartsAxis-root text": {
+                      fill: "#F5F5F5",
+                      fontWeight: 500,
+                    },
+                  }}
+                />
+              ) : (
+                <BarChart
+                  xAxis={[
+                    {
+                      data: [
+                        "Jan",
+                        "Feb",
+                        "Mar",
+                        "Apr",
+                        "May",
+                        "Jun",
+                        "Jul",
+                        "Aug",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Dec",
+                      ],
+                    },
+                  ]}
+                  series={[
+                    {
+                      data: [17, 15, 15, 18, 17, 15, 12, 14, 19, 12, 17, 15],
+                      color: "#FF6F00",
+                    },
+                  ]}
+                  width={1000}
+                  height={500}
+                  margin={{ top: 20, right: 20, bottom: 40, left: 20 }}
+                  sx={{
+                    "& .MuiChartsAxis-root text": { fill: "#F5F5F5" },
+                    "& .MuiChartsLegend-root text": { fill: "#B0B0B0" },
+                    "& .MuiChartsAxis-line": { stroke: "#B0B0B0" },
+                    "& .MuiChartsAxis-tick": { stroke: "#B0B0B0" },
+                  }}
+                />
+              )}
             </Box>
           </Box>
 

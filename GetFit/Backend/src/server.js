@@ -7,6 +7,8 @@ dotenv.config();
 
 const userRoutes = require("../routes/userRoutes.js");
 
+const weightLiftRoutes = require("../routes/weightLiftRoutes.js")
+
 const app = express();
 
 
@@ -22,6 +24,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api", weightLiftRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
