@@ -1,9 +1,47 @@
 import { Box, Typography, Avatar, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
 
 const Account = () => {
   // Navigation hook
   const navigate = useNavigate();
+
+  // Edit account details
+  const [showFields, setShowFields] = React.useState(false);
+
+  // User data
+  const [userData, setUserData] = React.useState({
+    username: "",
+    email: "",
+  });
+
+  // Get user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          "http://localhost:5000/api/users/profile",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        setUserData({
+          username: data.username,
+          email: data.email,
+        });
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <Box display="flex" minHeight="100vh" sx={{ bgcolor: "#1E1E1C" }}>
@@ -122,7 +160,7 @@ const Account = () => {
             fontSize: "20px",
             fontWeight: "600",
             fontFamily: "Arial, sans-serif",
-            margin: 3
+            margin: 3,
           }}
         >
           Account Settings
@@ -145,9 +183,9 @@ const Account = () => {
           <Avatar sx={{ width: 80, height: 80, bgcolor: "#FF6F00" }}>U</Avatar>
           <Box>
             <Typography sx={{ color: "#F5F5F5", fontWeight: "600" }}>
-              User Name
+              { userData.username }
             </Typography>
-            <Typography sx={{ color: "#B0B0B0" }}>user@email.com</Typography>
+            <Typography sx={{ color: "#B0B0B0" }}>{ userData.email }</Typography>
             <Button
               variant="contained"
               sx={{
@@ -155,9 +193,58 @@ const Account = () => {
                 bgcolor: "#FF6F00",
                 "&:hover": { bgcolor: "#e65c00" },
               }}
+              onClick={() => {
+                setShowFields((prev) => !prev);
+              }}
             >
               Edit Profile
             </Button>
+
+            {showFields && (
+              <Box sx={{ mt: 2 }}>
+                <Typography sx={{ color: "#F5F5F5", mb: 1 }}>
+                  Edit Account Details
+                </Typography>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <input
+                    type="text"
+                    placeholder="New Username"
+                    style={{
+                      padding: "8px",
+                      borderRadius: "4px",
+                      border: "none",
+                      background: "#333",
+                      color: "#fff",
+                    }}
+                  />
+                  <input
+                    type="email"
+                    placeholder="New Email"
+                    style={{
+                      padding: "8px",
+                      borderRadius: "4px",
+                      border: "none",
+                      background: "#333",
+                      color: "#fff",
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    sx={{
+                      mt: 1,
+                      bgcolor: "#FF6F00",
+                      "&:hover": { bgcolor: "#e65c00" },
+                    }}
+                    onClick={() => {
+                      setShowFields(false);
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </Box>
         </Box>
 

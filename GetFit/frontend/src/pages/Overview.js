@@ -14,6 +14,7 @@ import { LineChart, BarChart } from "@mui/x-charts";
 import { useEffect, useState } from "react";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import dayjs from "dayjs";
 
 const Overview = () => {
   // Navigation hook
@@ -22,6 +23,62 @@ const Overview = () => {
   // Store user weight and target weight
   const [currentWeight, setCurrentWeight] = useState(null);
   const [targetWeight, setTargetWeight] = useState(null);
+
+  // Store weight entries for the chart
+  const [weightEntries, setWeightEntries] = useState([]);
+
+  useEffect(() => {
+    const fetchWeightEntries = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/weights", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("GET /weights failed:", data.message);
+          return;
+        }
+
+        if (Array.isArray(data)) {
+          // safe to map
+          const entries = data.map((w) => ({
+            date: w.date,
+            weightKg: w.weightKg,
+            targetKg: w.targetKg,
+          }));
+          setWeightEntries(entries);
+        } else {
+          console.error("Expected array, got:", data);
+        }
+      } catch (err) {
+        console.error("Error fetching weight entries:", err);
+      }
+    };
+    fetchWeightEntries();
+  }, [currentWeight]);
+
+  useEffect(() => {
+    const fetchWeights = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/weights", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (res.ok && Array.isArray(data) && data.length > 0) {
+          const latest = data[0]; 
+          setCurrentWeight(latest.weightKg);
+          setTargetWeight(latest.targetKg);
+        }
+      } catch (err) {
+        console.error("Error fetching weights:", err);
+      }
+    };
+    fetchWeights();
+  }, []);
 
   // UseState to store whether the user is editing their current or target weight
   const [open, setOpen] = useState(false);
@@ -33,7 +90,33 @@ const Overview = () => {
   const [chartType, setChartType] = useState("weight"); // change between weight and visits
 
   // Store visits
-  const [visits, setVisits] = useState(null);
+  const [userData, setUserData] = useState({ visits: 0, visitHistory: [] });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          "http://localhost:5000/api/users/profile",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          setUserData({
+            visits: data.visits,
+            visitHistory: data.visitHistory || [],
+          });
+        } else {
+          console.error("Profile error:", data.message);
+        }
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Handle editing visits
   const handleVisits = async () => {
@@ -49,7 +132,10 @@ const Overview = () => {
 
       const data = await response.json();
       if (response.ok) {
-        setVisits(data.visits); 
+        setUserData({
+          visits: data.visits,
+          visitHistory: data.visitHistory || [],
+        });
       } else {
         console.error("Error updating visits:", data.message);
       }
@@ -57,6 +143,16 @@ const Overview = () => {
       console.error("Error posting visits:", err);
     }
   };
+
+  // Handle visit history
+  const visitsByMonth = {};
+  userData.visitHistory.forEach((entry) => {
+    const month = dayjs(entry.date).format("MMM");
+    visitsByMonth[month] = (visitsByMonth[month] || 0) + 1;
+  });
+
+  const months = Object.keys(visitsByMonth);
+  const counts = Object.values(visitsByMonth);
 
   // Handle saving card edits
   const handleOpen = (card) => {
@@ -100,28 +196,6 @@ const Overview = () => {
       console.error("Error posting weight:", err);
     }
   };
-
-  // Fetch user visits
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(
-          "http://localhost:5000/api/users/profile",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const data = await response.json();
-        setVisits(data.visits);
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-      }
-    };
-    fetchUserData();
-  }, []);
 
   // UseEffect to handle fetching current and target weight values
   useEffect(() => {
@@ -289,7 +363,8 @@ const Overview = () => {
               {[
                 {
                   title: "This months visits",
-                  value: visits !== null ? visits : "Loading...",
+                  value:
+                    userData.visits !== null ? userData.visits : "Loading...",
                 },
                 { title: "Current Weight", value: currentWeight ?? "" },
                 { title: "Target Weight", value: targetWeight ?? "" },
@@ -352,8 +427,6 @@ const Overview = () => {
                       }}
                       onClick={() => {
                         if (card.title === "This months visits") {
-                          // Increment the visits
-                          setVisits((prev) => (prev !== null ? prev + 1 : 1));
                           // Post updated visit count
                           handleVisits();
                         } else {
@@ -464,85 +537,70 @@ const Overview = () => {
 
               {/* Conditional rendering */}
               {chartType === "weight" ? (
-                <LineChart
-                  width={1000}
-                  height={500}
-                  series={[
-                    {
-                      data: [69, 69.2, 69.3, 69.5, 69.9, 70, 70.2],
-                      label: "Weight (kg)",
-                      color: "#FF6F00",
-                      lineSmoothing: 0.3,
-                    },
-                  ]}
-                  xAxis={[
-                    {
-                      scaleType: "band",
-                      data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                      label: "Days",
-                      labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
-                      tickLabelProps: {
-                        sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                <Box sx={{ overflowX: "auto" }}>
+                  <LineChart
+                    width={Math.max(weightEntries.length * 80, 1000)}
+                    height={500}
+                    series={[
+                      {
+                        data: weightEntries.map((entry) => entry.weightKg),
+                        label: "Weight (kg)",
+                        color: "#FF6F00",
+                        lineSmoothing: 0.3,
                       },
-                      lineProps: { sx: { stroke: "#555" } },
-                      tickProps: { sx: { stroke: "#555" } },
-                    },
-                  ]}
-                  yAxis={[
-                    {
-                      label: "Weight (kg)",
-                      labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
-                      tickLabelProps: {
-                        sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                    ]}
+                    xAxis={[
+                      {
+                        scaleType: "band",
+                        data: weightEntries.map((entry) =>
+                          dayjs(entry.date).format("DD/MM/YY")
+                        ),
+                        label: "Date",
+                        labelProps: {
+                          sx: { fill: "#F5F5F5", fontWeight: 500 },
+                        },
+                        tickLabelProps: {
+                          sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                        },
+                        lineProps: { sx: { stroke: "#555" } },
+                        tickProps: { sx: { stroke: "#555" } },
                       },
-                      lineProps: { sx: { stroke: "#555" } },
-                      tickProps: { sx: { stroke: "#555" } },
-                    },
-                  ]}
-                  sx={{
-                    "& .MuiChartsLegend-root": { display: "none" },
-                    "& .MuiChartsTooltip-root": {
-                      backgroundColor: "#1E1E1E",
-                      color: "#FFF",
-                      borderRadius: "8px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                    },
-                    "& .MuiChartsAxis-root line": { stroke: "#555" },
-                    "& .MuiChartsAxis-root text": {
-                      fill: "#F5F5F5",
-                      fontWeight: 500,
-                    },
-                  }}
-                />
+                    ]}
+                    yAxis={[
+                      {
+                        label: "Weight (kg)",
+                        labelProps: {
+                          sx: { fill: "#F5F5F5", fontWeight: 500 },
+                        },
+                        tickLabelProps: {
+                          sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                        },
+                        lineProps: { sx: { stroke: "#555" } },
+                        tickProps: { sx: { stroke: "#555" } },
+                      },
+                    ]}
+                    sx={{
+                      "& .MuiChartsLegend-root": { display: "none" },
+                      "& .MuiChartsTooltip-root": {
+                        backgroundColor: "#1E1E1E",
+                        color: "#FFF",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                      },
+                      "& .MuiChartsAxis-root line": { stroke: "#555" },
+                      "& .MuiChartsAxis-root text": {
+                        fill: "#F5F5F5",
+                        fontWeight: 500,
+                      },
+                    }}
+                  />
+                </Box>
               ) : (
                 <BarChart
-                  xAxis={[
-                    {
-                      data: [
-                        "Jan",
-                        "Feb",
-                        "Mar",
-                        "Apr",
-                        "May",
-                        "Jun",
-                        "Jul",
-                        "Aug",
-                        "Sep",
-                        "Oct",
-                        "Nov",
-                        "Dec",
-                      ],
-                    },
-                  ]}
-                  series={[
-                    {
-                      data: [17, 15, 15, 18, 17, 15, 12, 14, 19, 12, 17, 15],
-                      color: "#FF6F00",
-                    },
-                  ]}
+                  xAxis={[{ data: months }]}
+                  series={[{ data: counts, color: "#FF6F00" }]}
                   width={1000}
                   height={500}
-                  margin={{ top: 20, right: 20, bottom: 40, left: 20 }}
                   sx={{
                     "& .MuiChartsAxis-root text": { fill: "#F5F5F5" },
                     "& .MuiChartsLegend-root text": { fill: "#B0B0B0" },

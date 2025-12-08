@@ -37,9 +37,7 @@ const loginUser = async (req, res) => {
 
   try {
     if (!username || !password) {
-      return res
-        .status(400)
-        .json({ message: "Username and password required" });
+      return res.status(400).json({ message: "Username and password required" });
     }
 
     // Case-insensitive search
@@ -66,9 +64,28 @@ const loginUser = async (req, res) => {
   }
 };
 
+// Get user profile
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user).select("-password");
+    const user = await User.findById(req.user).select("-password"); 
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      visits: user.visits || 0,
+      visitHistory: user.visitHistory || [],
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get username and email for the logged-in user
+const getUsernameEmail = async (req, res) => {
+  try {
+    const user = await User.findById(req.user).select("username email");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -81,15 +98,19 @@ const getUserProfile = async (req, res) => {
 // Increment visits for the logged-in user
 const incrementVisits = async (req, res) => {
   try {
+    console.log("req.user:", req.user); 
     const user = await User.findById(req.user); 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.visits = (user.visits || 0) + 1; 
+    user.visits = (user.visits || 0) + 1;
+    user.visitHistory.push({ date: new Date() });
+
     await user.save();
 
-    res.json({ visits: user.visits });
+    res.json({
+      visits: user.visits,
+      visitHistory: user.visitHistory,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -100,5 +121,6 @@ module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
+  getUsernameEmail,
   incrementVisits,
 };

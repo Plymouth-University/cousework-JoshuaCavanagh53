@@ -7,7 +7,7 @@ exports.addWeightEntry = async (req, res) => {
 
   try {
     const weightEntry = await Weight.create({
-      userId: req.user,
+      userId: req.user,   
       date,
       weightKg,
       targetKg,
@@ -22,11 +22,11 @@ exports.addWeightEntry = async (req, res) => {
 
 // Lift
 exports.addLiftEntry = async (req, res) => {
-  const { exercise, date, sets } = req.body;
+  const { exercise, date, sets, targetSets } = req.body;
 
   try {
     const liftEntry = await Lift.create({
-      userId: req.user,
+      userId: req.user,   
       exercise,
       date,
       sets,
@@ -42,13 +42,7 @@ exports.addLiftEntry = async (req, res) => {
 
 exports.getWeightEntries = async (req, res) => {
   try {
-    // Find all weights for this user, newest first
     const weights = await Weight.find({ userId: req.user }).sort({ date: -1 });
-
-    if (!weights || weights.length === 0) {
-      return res.status(404).json({ message: "No weight entries found" });
-    }
-
     res.json(weights);
   } catch (err) {
     res.status(500).json({ message: err.message });
