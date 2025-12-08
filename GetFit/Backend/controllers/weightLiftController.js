@@ -42,7 +42,13 @@ exports.addLiftEntry = async (req, res) => {
 
 exports.getWeightEntries = async (req, res) => {
   try {
+    // Find all weights for this user, newest first
     const weights = await Weight.find({ userId: req.user }).sort({ date: -1 });
+
+    if (!weights || weights.length === 0) {
+      return res.status(404).json({ message: "No weight entries found" });
+    }
+
     res.json(weights);
   } catch (err) {
     res.status(500).json({ message: err.message });

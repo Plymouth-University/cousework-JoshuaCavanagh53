@@ -101,6 +101,7 @@ const Overview = () => {
     }
   };
 
+  // Fetch user visits
   useEffect(() => {
     const fetchUserData = async () => {
       try {

@@ -17,8 +17,6 @@ router.post("/login", loginUser);
 // Post /api/users/visits
 router.put("/visits", protect, incrementVisits);
 
-
-
 router.get("/profile", protect, getUserProfile);
 
 module.exports = router;
