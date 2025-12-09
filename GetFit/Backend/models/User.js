@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
   visitHistory: [{ 
     date: {type: Date, default: Date.now },
    }],
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 }, { timestamps: true });
 
 // Hash password before saving

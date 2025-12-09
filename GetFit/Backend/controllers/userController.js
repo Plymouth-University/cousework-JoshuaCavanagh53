@@ -37,7 +37,9 @@ const loginUser = async (req, res) => {
 
   try {
     if (!username || !password) {
-      return res.status(400).json({ message: "Username and password required" });
+      return res
+        .status(400)
+        .json({ message: "Username and password required" });
     }
 
     // Case-insensitive search
@@ -67,7 +69,7 @@ const loginUser = async (req, res) => {
 // Get user profile
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user).select("-password"); 
+    const user = await User.findById(req.user).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({
@@ -98,8 +100,8 @@ const getUsernameEmail = async (req, res) => {
 // Increment visits for the logged-in user
 const incrementVisits = async (req, res) => {
   try {
-    console.log("req.user:", req.user); 
-    const user = await User.findById(req.user); 
+    console.log("req.user:", req.user);
+    const user = await User.findById(req.user);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.visits = (user.visits || 0) + 1;
@@ -116,6 +118,41 @@ const incrementVisits = async (req, res) => {
   }
 };
 
+// Retrieve friends list
+const getFriendsList = async (req, res) => {
+  try {
+    const user = await User.findById(req.user).populate(
+      "friends",
+      "username email"
+    );
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user.friends);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Add friends
+const addFriend = async (req, res) => {
+  const { friendName } = req.body;
+  try {
+    const user = await User.findById(req.user);
+    const friend = await User.findOne({ username: friendName });
+    if (!user || !friend) return res.status(404).json({ message: "User not found" });
+
+    if (user.friends.includes(friend._id)) {
+      return res.status(400).json({ message: "Already friends" });
+    }
+
+    user.friends.push(friend._id);
+    await user.save();
+
+    res.json({ message: "Friend added" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   generateToken,
   registerUser,
@@ -123,4 +160,6 @@ module.exports = {
   getUserProfile,
   getUsernameEmail,
   incrementVisits,
+  getFriendsList,
+  addFriend
 };

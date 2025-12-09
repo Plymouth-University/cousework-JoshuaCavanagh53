@@ -15,6 +15,10 @@ import { useEffect, useState } from "react";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import dayjs from "dayjs";
+import { io } from "socket.io-client";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
 
 const Overview = () => {
   // Navigation hook
@@ -26,6 +30,25 @@ const Overview = () => {
 
   // Store weight entries for the chart
   const [weightEntries, setWeightEntries] = useState([]);
+
+  // Set Up websocket connection
+  let socket = io("http://localhost:5000");
+
+  // Show when connected
+  socket.on("connect", () => {
+    console.log("Connected to server:", socket.id);
+  });
+
+  // Listen for server message
+  socket.on("server-client", (msg) => {
+    console.log("Server says:", msg);
+    socket.emit("client-server", "Hello from client");
+  });
+
+  // Error logging
+  socket.on("connect_error", (err) => {
+    console.log("Socket error:", err);
+  });
 
   useEffect(() => {
     const fetchWeightEntries = async () => {
@@ -69,7 +92,7 @@ const Overview = () => {
         const data = await res.json();
 
         if (res.ok && Array.isArray(data) && data.length > 0) {
-          const latest = data[0]; 
+          const latest = data[0];
           setCurrentWeight(latest.weightKg);
           setTargetWeight(latest.targetKg);
         }
@@ -92,6 +115,11 @@ const Overview = () => {
   // Store visits
   const [userData, setUserData] = useState({ visits: 0, visitHistory: [] });
 
+  const [userName, setUserName] = useState({
+      username: "",
+      email: "",
+    });
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -107,6 +135,10 @@ const Overview = () => {
           setUserData({
             visits: data.visits,
             visitHistory: data.visitHistory || [],
+          });
+          setUserName({
+            username: data.username,
+            email: data.email,
           });
         } else {
           console.error("Profile error:", data.message);
@@ -219,6 +251,61 @@ const Overview = () => {
       }
     };
     fetchWeights();
+  }, []);
+
+  const [friends, setFriends] = useState([]);
+  // Add friends based on user name
+  const handleAddFriend = async (friendName) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        "http://localhost:5000/api/users/friends/add",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ friendName }),
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Friend added:", data);
+        setFriends((prev) => [
+          ...prev,
+          { username: friendName, email: data.email || "" },
+        ]);
+      } else {
+        console.error("Error adding friend:", data.message);
+      }
+    } catch (err) {
+      console.error("Error adding friend:", err);
+    }
+  };
+
+  // Get Friends
+  useEffect(() => {
+    const fetchFriends = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          "http://localhost:5000/api/users/friends",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await response.json();
+        if (response.ok || response.status === 200) {
+          setFriends(data);
+        } else {
+          console.error("Error fetching friends:", data.message);
+        }
+      } catch (err) {
+        console.error("Error fetching friends:", err);
+      }
+    };
+    fetchFriends();
   }, []);
 
   return (
@@ -341,7 +428,7 @@ const Overview = () => {
             margin: 3,
           }}
         >
-          Welcome back, User!
+          Welcome back, {userName.username}!
         </Typography>
 
         {/* Responsive Cards Row */}
@@ -623,16 +710,129 @@ const Overview = () => {
               minHeight: "750px",
             }}
           >
-            <Typography
+            {/* Header + input inline */}
+            <Box
               sx={{
-                color: "#F5F5F5",
-                fontWeight: "600",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
                 borderBottom: "2px solid #FFFFFF",
                 pb: 1,
               }}
             >
-              Friends list
-            </Typography>
+              <Typography
+                sx={{
+                  color: "#F5F5F5",
+                  fontWeight: "600",
+                  fontSize: "18px",
+                }}
+              >
+                Friends list
+              </Typography>
+
+              <TextField
+                label="Friend's Username"
+                variant="outlined"
+                size="small"
+                sx={{
+                  color: "#F5F5F5",
+                  "& .MuiOutlinedInput-root": {
+                    "& fieldset": {
+                      borderColor: "#FFF",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#FFF",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#FFF !important",
+                    },
+                    "&.Mui-focused": {
+                      boxShadow: "none",
+                    },
+                  },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    color: "#FFF !important",
+                  },
+                  "& .MuiInputBase-input": {
+                    color: "#F5F5F5",
+                    backgroundColor: "#333",
+                    borderRadius: "4px",
+                  },
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleAddFriend(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </Box>
+
+            {/* Table Header */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                px: 2,
+                py: 1,
+                borderBottom: "1px solid #555",
+                color: "#B0B0B0",
+                fontWeight: 500,
+                mt: 2,
+              }}
+            >
+              <Typography sx={{ flex: 2 }}>Username</Typography>
+              <Typography sx={{ flex: 1, textAlign: "center" }}>
+                Current Weight
+              </Typography>
+              <Typography sx={{ flex: 1, textAlign: "center" }}>
+                Target Weight
+              </Typography>
+            </Box>
+
+            {/* Friends list */}
+            {friends.map((friend, index) => (
+              <Box
+                key={friend._id || friend.username}
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  px: 2,
+                  py: 1.5,
+                  mt: 1,
+                  borderRadius: "8px",
+                  bgcolor: index % 2 === 0 ? "#333" : "#2E2E2E",
+                  color: "#FFFFFF",
+                  alignItems: "center",
+                  transition: "background 0.3s",
+                  "&:hover": { bgcolor: "#FF6F00", color: "#fff" },
+                }}
+              >
+                <Typography sx={{ flex: 2, fontSize: "16px", fontWeight: 500 }}>
+                  {friend.username}
+                </Typography>
+                <Typography
+                  sx={{
+                    flex: 1,
+                    textAlign: "center",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                  }}
+                >
+                  {friend.currentWeight || "-"}
+                </Typography>
+                <Typography
+                  sx={{
+                    flex: 1,
+                    textAlign: "center",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                  }}
+                >
+                  {friend.targetWeight || "-"}
+                </Typography>
+              </Box>
+            ))}
           </Box>
         </Box>
       </Box>
