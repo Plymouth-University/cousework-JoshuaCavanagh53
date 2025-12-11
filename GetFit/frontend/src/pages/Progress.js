@@ -1,10 +1,219 @@
-import { Box, Typography, Avatar, Button } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Avatar,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogActions,
+  DialogContent,
+  TextField,
+} from "@mui/material";
+
 import { useNavigate } from "react-router-dom";
 import { LineChart } from "@mui/x-charts/LineChart";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import React from "react";
+import { useEffect } from "react";
 
 const Progress = () => {
   // Navigation hook
   const navigate = useNavigate();
+
+  // Store lifts
+  const [lifts, setLifts] = React.useState([]);
+
+  const [open, setOpen] = React.useState(false);
+  const [editingLift, setEditingLift] = React.useState(null);
+
+  // Set up new entry input
+  const [liftName, setLiftName] = React.useState("");
+  const [currentKg, setCurrentKg] = React.useState("");
+  const [targetKg, setTargetKg] = React.useState("");
+  const [currentReps, setCurrentReps] = React.useState("");
+  const [targetReps, setTargetReps] = React.useState("");
+
+  const resetFields = () => {
+    setLiftName("");
+    setCurrentKg("");
+    setTargetKg("");
+    setCurrentReps("");
+    setTargetReps("");
+  };
+
+  useEffect(() => {
+    if (editingLift) {
+      setLiftName(editingLift.exercise || "");
+      setCurrentKg(editingLift.sets?.[0]?.weightKg ?? "");
+      setCurrentReps(editingLift.sets?.[0]?.reps ?? "");
+      setTargetKg(editingLift.targetSets?.[0]?.weightKg ?? "");
+      setTargetReps(editingLift.targetSets?.[0]?.reps ?? "");
+    } else {
+      resetFields();
+    }
+  }, [editingLift]);
+
+  const handleSave = () => {
+    if (!liftName || !currentKg || !targetKg || !currentReps || !targetReps)
+      return;
+
+    if (editingLift) {
+      editLift(
+        editingLift._id,
+        liftName,
+        Number(currentKg),
+        Number(targetKg),
+        Number(currentReps),
+        Number(targetReps)
+      );
+    } else {
+      addLift(
+        liftName,
+        Number(currentKg),
+        Number(targetKg),
+        Number(currentReps),
+        Number(targetReps)
+      );
+    }
+
+    resetFields();
+    setEditingLift(null);
+    setOpen(false);
+  };
+
+  // Edit existing lift
+  const editLift = async (
+    id,
+    name,
+    currentKg,
+    targetKg,
+    currentReps,
+    targetReps
+  ) => {
+    // Update local state with schema shape
+    setLifts((prev) =>
+      prev.map((lift) =>
+        lift._id === id
+          ? {
+              ...lift,
+              exercise: name,
+              sets: [{ reps: currentReps, weightKg: currentKg }],
+              targetSets: [{ reps: targetReps, weightKg: targetKg }],
+            }
+          : lift
+      )
+    );
+
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`http://localhost:5000/api/lifts/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          exercise: name,
+          sets: [{ reps: Number(currentReps), weightKg: Number(currentKg) }],
+          targetSets: [
+            { reps: Number(targetReps), weightKg: Number(targetKg) },
+          ],
+        }),
+      });
+    } catch (err) {
+      console.error("Error editing lift entry:", err);
+    }
+  };
+
+  // Add new lift
+  const addLift = async (
+    name,
+    currentKg,
+    targetKg,
+    currentReps,
+    targetReps
+  ) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/lifts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          exercise: name,
+          date: new Date(),
+          sets: [{ reps: Number(currentReps), weightKg: Number(currentKg) }],
+          targetSets: [
+            { reps: Number(targetReps), weightKg: Number(targetKg) },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("Add lift failed:", response.status, errText);
+        return;
+      }
+
+      const payload = await response.json();
+
+      // Accept either the document directly or a wrapped response
+      const newLift = payload?.liftEntry || payload?.lift || payload; 
+
+      // Validate shape before inserting
+      if (!newLift || !newLift._id) {
+        console.error("Backend did not return a lift with _id:", payload);
+        return;
+      }
+
+      // Ensure arrays exist
+      newLift.sets = Array.isArray(newLift.sets) ? newLift.sets : [];
+      newLift.targetSets = Array.isArray(newLift.targetSets)
+        ? newLift.targetSets
+        : [];
+
+      // Update local state 
+      setLifts((prev) => [...prev, newLift]);
+
+      // Reset the dialog fields and close
+      resetFields();
+      setOpen(false);
+    } catch (err) {
+      console.error("Error uploading lift entry:", err);
+    }
+  };
+
+  // Fetch existing lifts
+  useEffect(() => {
+    const fetchLifts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5000/api/lifts", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+
+        // Keep schema shape intact
+        const formattedLifts = data.map((lift) => ({
+          _id: lift._id,
+          exercise: lift.exercise,
+          sets: lift.sets,
+          targetSets: lift.targetSets,
+          date: lift.date,
+        }));
+        setLifts(formattedLifts);
+      } catch (err) {
+        console.error("Error fetching lifts:", err);
+      }
+    };
+
+    fetchLifts();
+  }, []);
 
   return (
     <Box display="flex" minHeight="100vh" sx={{ bgcolor: "#1E1E1C" }}>
@@ -125,6 +334,7 @@ const Progress = () => {
         >
           Progress
         </Typography>
+
         {/* Body Weight and PR Progress Sections */}
         <Box
           sx={{
@@ -166,7 +376,7 @@ const Progress = () => {
                   data: [69, 69.2, 69.3, 69.5, 69.9, 70, 70.2],
                   label: "Weight (kg)",
                   color: "#FF6F00",
-                  lineSmoothing: 0.3, // smooth line
+                  lineSmoothing: 0.3,
                 },
               ]}
               xAxis={[
@@ -194,7 +404,7 @@ const Progress = () => {
                 },
               ]}
               sx={{
-                "& .MuiChartsLegend-root": { display: "none" }, // hide legend for cleaner look
+                "& .MuiChartsLegend-root": { display: "none" },
                 "& .MuiChartsTooltip-root": {
                   backgroundColor: "#1E1E1E",
                   color: "#FFF",
@@ -254,55 +464,229 @@ const Progress = () => {
               <Typography sx={{ flex: 1, textAlign: "center" }}>
                 Target (kg)
               </Typography>
+              <AddIcon
+                sx={{
+                  flex: 0.2,
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  ":hover": { bgcolor: "#FF6F00", color: "#fff" },
+                }}
+                onClick={() => {
+                  // Handle adding new lift cards
+                  setOpen(true);
+                }}
+              />
             </Box>
+            <Dialog
+              open={open}
+              onClose={() => setOpen(false)}
+              PaperProps={{ sx: { bgcolor: "#2C2C29", color: "#F5F5F5" } }}
+            >
+              <DialogTitle sx={{ color: "#F5F5F5" }}>
+                {editingLift ? "Edit Lift" : "Add New Lift"}
+              </DialogTitle>
+              <DialogContent
+                sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+              >
+                {/* Lift Name */}
+                <TextField
+                  label="Lift Name"
+                  value={liftName}
+                  onChange={(e) => setLiftName(e.target.value)}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": { borderColor: "#FFF" },
+                      "&:hover fieldset": { borderColor: "#FFF" },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#FFF !important",
+                      },
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "#F5F5F5",
+                      backgroundColor: "#333",
+                      borderRadius: "4px",
+                    },
+                    "& .MuiInputLabel-root": { color: "#B0B0B0" },
+                  }}
+                />
+
+                {/* Current Kg + Reps */}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TextField
+                    label="Current Kg"
+                    type="number"
+                    value={currentKg}
+                    onChange={(e) => setCurrentKg(e.target.value)}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": { borderColor: "#FFF" },
+                        "&:hover fieldset": { borderColor: "#FFF" },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#FFF !important",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "#F5F5F5",
+                        backgroundColor: "#333",
+                        borderRadius: "4px",
+                      },
+                      "& .MuiInputLabel-root": { color: "#B0B0B0" },
+                    }}
+                  />
+                  <TextField
+                    label="Reps"
+                    type="number"
+                    value={currentReps}
+                    onChange={(e) => setCurrentReps(e.target.value)}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": { borderColor: "#FFF" },
+                        "&:hover fieldset": { borderColor: "#FFF" },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#FFF !important",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "#F5F5F5",
+                        backgroundColor: "#333",
+                        borderRadius: "4px",
+                      },
+                      "& .MuiInputLabel-root": { color: "#B0B0B0" },
+                    }}
+                  />
+                </Box>
+
+                {/* Target Kg + Reps */}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TextField
+                    label="Target Kg"
+                    type="number"
+                    value={targetKg}
+                    onChange={(e) => setTargetKg(e.target.value)}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": { borderColor: "#FFF" },
+                        "&:hover fieldset": { borderColor: "#FFF" },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#FFF !important",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "#F5F5F5",
+                        backgroundColor: "#333",
+                        borderRadius: "4px",
+                      },
+                      "& .MuiInputLabel-root": { color: "#B0B0B0" },
+                    }}
+                  />
+                  <TextField
+                    label="Target Reps"
+                    type="number"
+                    value={targetReps}
+                    onChange={(e) => setTargetReps(e.target.value)}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": { borderColor: "#FFF" },
+                        "&:hover fieldset": { borderColor: "#FFF" },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#FFF !important",
+                        },
+                      },
+                      "& .MuiInputBase-input": {
+                        color: "#F5F5F5",
+                        backgroundColor: "#333",
+                        borderRadius: "4px",
+                      },
+                      "& .MuiInputLabel-root": { color: "#B0B0B0" },
+                    }}
+                  />
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  onClick={() => setOpen(false)}
+                  sx={{ color: "#B0B0B0" }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleSave}
+                  sx={{ bgcolor: "#FF6F00", "&:hover": { bgcolor: "#e65c00" } }}
+                >
+                  Save
+                </Button>
+              </DialogActions>
+            </Dialog>
 
             {/* Different lifts */}
-            {[
-              { name: "Bench Press", prev: 80, current: 85 },
-              { name: "Squat", prev: 120, current: 125 },
-              { name: "Deadlift", prev: 150, current: 160 },
-            ].map((lift, index) => (
-              <Box
-                key={lift.name}
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  px: 2,
-                  py: 1.5,
-                  mt: 1,
-                  borderRadius: "8px",
-                  bgcolor: index % 2 === 0 ? "#333" : "#2E2E2E",
-                  color: "#FFFFFF",
-                  alignItems: "center",
-                  transition: "background 0.3s",
-                  "&:hover": { bgcolor: "#FF6F00", color: "#fff" },
-                }}
-              >
-                <Typography sx={{ flex: 2, fontSize: "16px", fontWeight: 500 }}>
-                  {lift.name}
-                </Typography>
-                <Typography
+            {lifts.map((lift, index) => {
+              const lastSet = lift.sets?.[lift.sets.length - 1];
+              const lastTarget = lift.targetSets?.[lift.targetSets.length - 1];
+
+              return (
+                <Box
+                  key={lift._id}
                   sx={{
-                    flex: 1,
-                    textAlign: "center",
-                    fontSize: "16px",
-                    fontWeight: 500,
+                    display: "flex",
+                    flexDirection: "row",
+                    px: 2,
+                    py: 1.5,
+                    mt: 1,
+                    borderRadius: "8px",
+                    bgcolor: index % 2 === 0 ? "#333" : "#2E2E2E",
+                    color: "#FFFFFF",
+                    alignItems: "center",
+                    transition: "background 0.3s",
+                    "&:hover": { bgcolor: "#FF6F00", color: "#fff" },
                   }}
                 >
-                  {lift.prev}
-                </Typography>
-                <Typography
-                  sx={{
-                    flex: 1,
-                    textAlign: "center",
-                    fontSize: "16px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {lift.current}
-                </Typography>
-              </Box>
-            ))}
+                  <Typography
+                    sx={{ flex: 2, fontSize: "16px", fontWeight: 500 }}
+                  >
+                    {lift.exercise}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      flex: 1,
+                      textAlign: "center",
+                      fontSize: "16px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {lastSet
+                      ? `${lastSet.weightKg} (${lastSet.reps} reps)`
+                      : "N/A"}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      flex: 1,
+                      textAlign: "center",
+                      fontSize: "16px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {lastTarget
+                      ? `${lastTarget.weightKg} (${lastTarget.reps} reps)`
+                      : "N/A"}
+                  </Typography>
+
+                  <EditIcon
+                    sx={{
+                      flex: 0.2,
+                      cursor: "pointer",
+                      ":hover": { color: "#000" },
+                    }}
+                    onClick={() => {
+                      setEditingLift(lift);
+                      setOpen(true);
+                    }}
+                  />
+                </Box>
+              );
+            })}
           </Box>
         </Box>
       </Box>

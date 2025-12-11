@@ -1,5 +1,7 @@
 const express = require("express");
-const { registerUser, loginUser, getUserProfile, incrementVisits, getUsernameEmail, getFriendsList, addFriend, getFriendsWeights } = require("../controllers/userController");
+const { registerUser, loginUser, getUserProfile, 
+    incrementVisits, getUsernameEmail, getFriendsList, addFriend, 
+    getFriendsWeights, updateUsernameEmail } = require("../controllers/userController");
 const router = express.Router();
 
 // Get user profile
@@ -20,6 +22,10 @@ router.get("/friends", protect, getFriendsList);
 // Add a friend
 router.put("/friends/add", protect, addFriend);
 
+// Update username and email
+router.put("/profile", protect, updateUsernameEmail);
+
+// Get friends' weight entries
 router.get("/friends/weights", protect, getFriendsWeights);
 
 // Post /api/users/visits

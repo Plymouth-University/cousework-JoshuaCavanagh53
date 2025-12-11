@@ -2,7 +2,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { get } = require("mongoose");
-const Weight = require("../models/weight"); 
+const Weight = require("../models/weight");
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
@@ -99,6 +99,30 @@ const getUsernameEmail = async (req, res) => {
   }
 };
 
+// Update username or email for the logged-in user
+const updateUsernameEmail = async (req, res) => {
+  const { username, email } = req.body;
+  try {
+    const user = await User.findById(req.user);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (username) user.username = username;
+    if (email) user.email = email;
+    await user.save();
+
+    // Emit WebSocket event
+    req.io.emit("profileUpdated", {
+      userId: req.user,
+      username: user.username,
+      email: user.email,
+    });
+
+    res.json({ message: "Profile updated successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Increment visits for the logged-in user
 const incrementVisits = async (req, res) => {
   try {
@@ -140,7 +164,8 @@ const addFriend = async (req, res) => {
   try {
     const user = await User.findById(req.user);
     const friend = await User.findOne({ username: friendName });
-    if (!user || !friend) return res.status(404).json({ message: "User not found" });
+    if (!user || !friend)
+      return res.status(404).json({ message: "User not found" });
 
     if (user.friends.includes(friend._id)) {
       return res.status(400).json({ message: "Already friends" });
@@ -158,13 +183,17 @@ const addFriend = async (req, res) => {
 // Controller to fetch freinds weight and target weight
 const getFriendsWeights = async (req, res) => {
   try {
-    const user = await User.findById(req.user).populate("friends", "username email");
+    const user = await User.findById(req.user).populate(
+      "friends",
+      "username email"
+    );
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const friendsWithWeights = await Promise.all(
       user.friends.map(async (friend) => {
-        const latestWeight = await Weight.findOne({ userId: friend._id })
-          .sort({ date: -1 });
+        const latestWeight = await Weight.findOne({ userId: friend._id }).sort({
+          date: -1,
+        });
 
         return {
           username: friend.username,
@@ -191,4 +220,5 @@ module.exports = {
   getFriendsList,
   addFriend,
   getFriendsWeights,
+  updateUsernameEmail
 };

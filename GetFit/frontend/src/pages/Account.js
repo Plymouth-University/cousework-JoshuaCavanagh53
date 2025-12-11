@@ -1,10 +1,16 @@
 import { Box, Typography, Avatar, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import React, { useEffect } from "react";
+import { io } from "socket.io-client";
+import dayjs from "dayjs";
 
 const Account = () => {
+  
   // Navigation hook
   const navigate = useNavigate();
+
+  // Date for last login display
+  const date = new Date();
 
   // Edit account details
   const [showFields, setShowFields] = React.useState(false);
@@ -32,6 +38,7 @@ const Account = () => {
         const data = await response.json();
 
         setUserData({
+          _id: data._id,
           username: data.username,
           email: data.email,
         });
@@ -42,6 +49,54 @@ const Account = () => {
 
     fetchUserData();
   }, []);
+
+  // Update username or email
+  const updateProfile = async (newUsername, newEmail) => {
+    // Ensure no empty updates are sent to the database
+    if (!newUsername && !newEmail) return;
+    if (newUsername === "") newUsername = userData.username;
+    if (newEmail === "") newEmail = userData.email;
+
+    try {
+      const token = localStorage.getItem("token");
+      await fetch("http://localhost:5000/api/users/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          username: newUsername,
+          email: newEmail,
+        }),
+      });
+    } catch (err) {
+      console.error("Error updating profile:", err);
+    }
+  };
+
+  // Handle websocket profile updates
+  useEffect(() => {
+    const socket = io("http://localhost:5000", {
+      auth: { token: localStorage.getItem("token") },
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+    });
+
+    socket.on("profileUpdated", (data) => {
+      if (data.userId === userData._id) {
+        setUserData((prev) => ({
+          ...prev,
+          username: data.username,
+          email: data.email,
+        }));
+      }
+    });
+
+    return () => socket.disconnect();
+  }, [userData._id]);
 
   return (
     <Box display="flex" minHeight="100vh" sx={{ bgcolor: "#1E1E1C" }}>
@@ -180,9 +235,9 @@ const Account = () => {
           <Avatar sx={{ width: 80, height: 80, bgcolor: "#FF6F00" }}>U</Avatar>
           <Box>
             <Typography sx={{ color: "#F5F5F5", fontWeight: "600" }}>
-              { userData.username }
+              {userData.username}
             </Typography>
-            <Typography sx={{ color: "#B0B0B0" }}>{ userData.email }</Typography>
+            <Typography sx={{ color: "#B0B0B0" }}>{userData.email}</Typography>
             <Button
               variant="contained"
               sx={{
@@ -214,7 +269,7 @@ const Account = () => {
                       background: "#333",
                       color: "#fff",
                     }}
-                  />
+                  ></input>
                   <input
                     type="email"
                     placeholder="New Email"
@@ -234,6 +289,14 @@ const Account = () => {
                       "&:hover": { bgcolor: "#e65c00" },
                     }}
                     onClick={() => {
+                      updateProfile(
+                        document.querySelector(
+                          'input[placeholder="New Username"]'
+                        ).value,
+                        document.querySelector('input[placeholder="New Email"]')
+                          .value
+                      );
+
                       setShowFields(false);
                     }}
                   >
@@ -259,7 +322,8 @@ const Account = () => {
             Security
           </Typography>
           <Typography sx={{ color: "#B0B0B0", mb: 1 }}>
-            Last login: 24 Nov 2025, Plymouth UK
+            {`Change your password regularly to keep your account secure. Last Login:`} {dayjs(date).format("DD/MM/YYYY HH:mm")}
+            
           </Typography>
           <Button
             variant="contained"
