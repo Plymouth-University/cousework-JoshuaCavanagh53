@@ -44,7 +44,16 @@ exports.addLiftEntry = async (req, res) => {
       date,
       sets,
       targetSets,
+
+      history: [
+        {
+          date: date || new Date(),
+          weightKg: sets?.[0]?.weightKg,
+          reps: sets?.[0]?.reps,
+        },
+      ],
     });
+
     res
       .status(201)
       .json({ liftEntry, message: "Lift entry added successfully" });
@@ -53,35 +62,24 @@ exports.addLiftEntry = async (req, res) => {
   }
 };
 
+
 exports.updateLiftEntry = async (req, res) => {
-  const { liftId } = req.params;
-  const { exercise, date, sets, targetSets } = req.body;
-
   try {
-    // Find the lift entry belonging to this user
-    const liftEntry = await Lift.findOne({ _id: liftId, userId: req.user });
-    if (!liftEntry) {
-      return res.status(404).json({ message: "Lift entry not found" });
-    }
+    const lift = await Lift.findById(req.params.liftId); 
+    if (!lift) return res.status(404).json({ message: "Lift not found" });
 
-    // Update only the provided fields
-    if (exercise) liftEntry.exercise = exercise;
-    if (date) liftEntry.date = date;
-    if (sets) liftEntry.sets = sets;
-    if (targetSets) liftEntry.targetSets = targetSets;
-
-    await liftEntry.save();
-
-    // Emit WebSocket event
-    req.io.emit("liftUpdated", {
-      userId: req.user,
-      liftId: liftEntry._id,
-      exercise: liftEntry.exercise,
-      sets: liftEntry.sets,
-      targetSets: liftEntry.targetSets,
+    lift.history.push({
+      date: new Date(),
+      weightKg: req.body.sets[0]?.weightKg,
+      reps: req.body.sets[0]?.reps,
     });
 
-    res.json({ message: "Lift entry updated successfully", liftEntry });
+    lift.sets = req.body.sets;
+    lift.targetSets = req.body.targetSets;
+    lift.exercise = req.body.exercise;
+
+    const updatedLift = await lift.save();
+    res.json(updatedLift);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

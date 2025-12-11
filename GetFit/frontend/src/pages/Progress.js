@@ -34,6 +34,27 @@ const Progress = () => {
   const [currentReps, setCurrentReps] = React.useState("");
   const [targetReps, setTargetReps] = React.useState("");
 
+  // Handle lift selection
+  const [selectedLift, setSelectedLift] = React.useState(null);
+  const [liftClicked, setLiftClicked] = React.useState(false);
+
+  // Store lift data
+  const selectedLiftObj = lifts.find((l) => l._id === selectedLift);
+
+  const weightData = selectedLiftObj?.history?.map((h) => h.weightKg) || [];
+  const dateLabels =
+    selectedLiftObj?.history?.map((h) =>
+      new Date(h.date).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      })
+    ) || [];
+
+  console.log("Selected lift:", selectedLiftObj);
+  console.log("History:", selectedLiftObj?.history);
+  console.log("WeightData:", weightData);
+  console.log("DateLabels:", dateLabels);
+
   const resetFields = () => {
     setLiftName("");
     setCurrentKg("");
@@ -42,6 +63,7 @@ const Progress = () => {
     setTargetReps("");
   };
 
+  // Populate fields when editing
   useEffect(() => {
     if (editingLift) {
       setLiftName(editingLift.exercise || "");
@@ -54,10 +76,13 @@ const Progress = () => {
     }
   }, [editingLift]);
 
+  // Handle saving new or edited lift
   const handleSave = () => {
+    // Basic validation
     if (!liftName || !currentKg || !targetKg || !currentReps || !targetReps)
       return;
 
+    // Decide between add or edit
     if (editingLift) {
       editLift(
         editingLift._id,
@@ -77,6 +102,7 @@ const Progress = () => {
       );
     }
 
+    // Reset fields and close dialog
     resetFields();
     setEditingLift(null);
     setOpen(false);
@@ -105,6 +131,7 @@ const Progress = () => {
       )
     );
 
+    // Send update to backend
     try {
       const token = localStorage.getItem("token");
       await fetch(`http://localhost:5000/api/lifts/${id}`, {
@@ -161,7 +188,7 @@ const Progress = () => {
       const payload = await response.json();
 
       // Accept either the document directly or a wrapped response
-      const newLift = payload?.liftEntry || payload?.lift || payload; 
+      const newLift = payload?.liftEntry || payload?.lift || payload;
 
       // Validate shape before inserting
       if (!newLift || !newLift._id) {
@@ -175,7 +202,7 @@ const Progress = () => {
         ? newLift.targetSets
         : [];
 
-      // Update local state 
+      // Update local state
       setLifts((prev) => [...prev, newLift]);
 
       // Reset the dialog fields and close
@@ -205,6 +232,7 @@ const Progress = () => {
           sets: lift.sets,
           targetSets: lift.targetSets,
           date: lift.date,
+          history: lift.history || [],
         }));
         setLifts(formattedLifts);
       } catch (err) {
@@ -299,6 +327,10 @@ const Progress = () => {
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
+            
+          }}
+          onClick={() =>{
+              navigate("/")
           }}
         >
           <Typography
@@ -364,60 +396,67 @@ const Progress = () => {
                 mb: 2,
               }}
             >
-              Body Weight Progress
+              {selectedLift
+                ? `Weight Progress for ${
+                    lifts.find((lift) => lift._id === selectedLift)?.exercise
+                  }`
+                : "Weight Progress"}
             </Typography>
 
             {/* Line Chart */}
-            <LineChart
-              width={700}
-              height={600}
-              series={[
-                {
-                  data: [69, 69.2, 69.3, 69.5, 69.9, 70, 70.2],
-                  label: "Weight (kg)",
-                  color: "#FF6F00",
-                  lineSmoothing: 0.3,
-                },
-              ]}
-              xAxis={[
-                {
-                  scaleType: "band",
-                  data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                  label: "Days",
-                  labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
-                  tickLabelProps: {
-                    sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+
+            {liftClicked && selectedLift && (
+              <LineChart
+                width={700}
+                height={600}
+                series={[
+                  {
+                    data: weightData,
+                    label: `${selectedLiftObj?.exercise || ""} (kg)`,
+                    color: "#FF6F00",
+                    lineSmoothing: 0.3,
                   },
-                  lineProps: { sx: { stroke: "#555" } },
-                  tickProps: { sx: { stroke: "#555" } },
-                },
-              ]}
-              yAxis={[
-                {
-                  label: "Weight (kg)",
-                  labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
-                  tickLabelProps: {
-                    sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                ]}
+                xAxis={[
+                  {
+                    scaleType: "band",
+                    data: dateLabels,
+                    label: "Date",
+                    labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
+                    tickLabelProps: {
+                      sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                    },
+                    lineProps: { sx: { stroke: "#555" } },
+                    tickProps: { sx: { stroke: "#555" } },
                   },
-                  lineProps: { sx: { stroke: "#555" } },
-                  tickProps: { sx: { stroke: "#555" } },
-                },
-              ]}
-              sx={{
-                "& .MuiChartsLegend-root": { display: "none" },
-                "& .MuiChartsTooltip-root": {
-                  backgroundColor: "#1E1E1E",
-                  color: "#FFF",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                },
-                "& .MuiChartsAxis-root line": { stroke: "#555" },
-                "& .MuiChartsAxis-root text": {
-                  fill: "#F5F5F5",
-                  fontWeight: 500,
-                },
-              }}
-            />
+                ]}
+                yAxis={[
+                  {
+                    label: "Weight (kg)",
+                    labelProps: { sx: { fill: "#F5F5F5", fontWeight: 500 } },
+                    tickLabelProps: {
+                      sx: { fill: "#F5F5F5", fontSize: "0.9rem" },
+                    },
+                    lineProps: { sx: { stroke: "#FFF" } },
+                    tickProps: { sx: { stroke: "#FFF" } },
+                  },
+                ]}
+                sx={{
+                      "& .MuiChartsLegend-root": { display: "none" },
+                      "& .MuiChartsTooltip-root": {
+                        backgroundColor: "#1E1E1E",
+                        color: "#FFF",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                      },
+                      "& .MuiChartsAxis-root line": { stroke: "#555" },
+                      "& .MuiChartsAxis-root text": {
+                        fill: "#F5F5F5",
+                        fontWeight: 500,
+                      },
+                    }}
+              />
+            )}
           </Box>
 
           <Box
@@ -634,11 +673,18 @@ const Progress = () => {
                     py: 1.5,
                     mt: 1,
                     borderRadius: "8px",
-                    bgcolor: index % 2 === 0 ? "#333" : "#2E2E2E",
+                    bgcolor:
+                      selectedLift === lift._id && liftClicked
+                        ? "#FF6F00"
+                        : "#333",
                     color: "#FFFFFF",
                     alignItems: "center",
                     transition: "background 0.3s",
                     "&:hover": { bgcolor: "#FF6F00", color: "#fff" },
+                  }}
+                  onClick={() => {
+                    setSelectedLift(lift._id);
+                    setLiftClicked(true);
                   }}
                 >
                   <Typography

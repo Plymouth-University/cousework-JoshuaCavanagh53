@@ -434,6 +434,9 @@ const Overview = () => {
               fontFamily: "Arial, sans-serif",
               color: "#F5F5F5",
             }}
+            onClick={() =>{
+              navigate("/")
+          }}
           >
             Log out
           </Typography>
