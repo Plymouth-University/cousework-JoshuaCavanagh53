@@ -35,15 +35,12 @@ const Progress = () => {
         </Box>
 
         {/* Sidebar Items */}
-        {["Overview", "Account", "Calendar", "Progress"].map((item, idx) => (
+        {["Overview", "Account", "Progress"].map((item, idx) => (
           <Box
             key={idx}
             onClick={() => {
               if (item === "Overview") {
                 navigate("/overview");
-              }
-              if (item === "Calendar") {
-                navigate("/calendar");
               }
               if (item === "Account") {
                 navigate("/account");

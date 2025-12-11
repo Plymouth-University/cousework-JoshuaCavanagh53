@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { get } = require("mongoose");
+const Weight = require("../models/weight"); 
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
@@ -153,6 +155,32 @@ const addFriend = async (req, res) => {
   }
 };
 
+// Controller to fetch freinds weight and target weight
+const getFriendsWeights = async (req, res) => {
+  try {
+    const user = await User.findById(req.user).populate("friends", "username email");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const friendsWithWeights = await Promise.all(
+      user.friends.map(async (friend) => {
+        const latestWeight = await Weight.findOne({ userId: friend._id })
+          .sort({ date: -1 });
+
+        return {
+          username: friend.username,
+          email: friend.email,
+          currentWeight: latestWeight?.weightKg || null,
+          targetWeight: latestWeight?.targetKg || null,
+        };
+      })
+    );
+
+    res.json(friendsWithWeights);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   generateToken,
   registerUser,
@@ -161,5 +189,6 @@ module.exports = {
   getUsernameEmail,
   incrementVisits,
   getFriendsList,
-  addFriend
+  addFriend,
+  getFriendsWeights,
 };

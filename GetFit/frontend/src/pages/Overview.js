@@ -16,9 +16,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import dayjs from "dayjs";
 import { io } from "socket.io-client";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemText from "@mui/material/ListItemText";
 
 const Overview = () => {
   // Navigation hook
@@ -30,6 +27,11 @@ const Overview = () => {
 
   // Store weight entries for the chart
   const [weightEntries, setWeightEntries] = useState([]);
+
+  // Sort weight entries by date ascending for charting
+  const sortedEntries = [...weightEntries].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
 
   // Set Up websocket connection
   let socket = io("http://localhost:5000");
@@ -116,9 +118,9 @@ const Overview = () => {
   const [userData, setUserData] = useState({ visits: 0, visitHistory: [] });
 
   const [userName, setUserName] = useState({
-      username: "",
-      email: "",
-    });
+    username: "",
+    email: "",
+  });
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -254,6 +256,7 @@ const Overview = () => {
   }, []);
 
   const [friends, setFriends] = useState([]);
+
   // Add friends based on user name
   const handleAddFriend = async (friendName) => {
     try {
@@ -286,26 +289,57 @@ const Overview = () => {
 
   // Get Friends
   useEffect(() => {
-    const fetchFriends = async () => {
+    const fetchFriendsWithWeights = async () => {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          "http://localhost:5000/api/users/friends",
+          "http://localhost:5000/api/users/friends/weights",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
         const data = await response.json();
-        if (response.ok || response.status === 200) {
+
+        if (response.ok) {
           setFriends(data);
         } else {
-          console.error("Error fetching friends:", data.message);
+          console.error("Error fetching friends with weights:", data.message);
         }
       } catch (err) {
-        console.error("Error fetching friends:", err);
+        console.error("Error fetching friends with weights:", err);
       }
     };
-    fetchFriends();
+
+    fetchFriendsWithWeights();
+  }, []);
+
+  // Handle websocket weight updates for friends
+  useEffect(() => {
+    const socket = io("http://localhost:5000", {
+      auth: { token: localStorage.getItem("token") },
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to server:", socket.id);
+    });
+
+    // Listen for weight updates
+    socket.on("weightUpdated", (data) => {
+      console.log("Weight update received:", data);
+      setFriends((prev) =>
+        prev.map((friend) =>
+          friend._id === data.userId || friend.username === data.username
+            ? {
+                ...friend,
+                currentWeight: data.weightKg,
+                targetWeight: data.targetKg,
+              }
+            : friend
+        )
+      );
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   return (
@@ -337,15 +371,12 @@ const Overview = () => {
         </Box>
 
         {/* Sidebar Items */}
-        {["Overview", "Account", "Calendar", "Progress"].map((item, idx) => (
+        {["Overview", "Account", "Progress"].map((item, idx) => (
           <Box
             key={idx}
             onClick={() => {
               if (item === "Account") {
                 navigate("/account");
-              }
-              if (item === "Calendar") {
-                navigate("/calendar");
               }
               if (item === "Progress") {
                 navigate("/progress");
@@ -630,7 +661,7 @@ const Overview = () => {
                     height={500}
                     series={[
                       {
-                        data: weightEntries.map((entry) => entry.weightKg),
+                        data: sortedEntries.map((entry) => entry.weightKg),
                         label: "Weight (kg)",
                         color: "#FF6F00",
                         lineSmoothing: 0.3,
@@ -639,7 +670,7 @@ const Overview = () => {
                     xAxis={[
                       {
                         scaleType: "band",
-                        data: weightEntries.map((entry) =>
+                        data: sortedEntries.map((entry) =>
                           dayjs(entry.date).format("DD/MM/YY")
                         ),
                         label: "Date",

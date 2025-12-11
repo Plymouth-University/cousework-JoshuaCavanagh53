@@ -13,7 +13,7 @@ const weightLiftRoutes = require("../routes/weightLiftRoutes.js");
 const app = express();
 const server = http.createServer(app);
 
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -21,22 +21,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
-app.use("/api/users", userRoutes);
-app.use("/api", weightLiftRoutes);
-
-
 // SOCKET.IO
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"],
   },
+});
+
+app.use((req, res, next) => {
+  req.io = io;
+  next();
 });
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 });
+
+// Routes
+app.use("/api/users", userRoutes);
+app.use("/api", weightLiftRoutes);
 
 // Connect to MongoDB and start server
 mongoose
