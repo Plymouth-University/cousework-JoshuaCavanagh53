@@ -17,23 +17,23 @@ jobs:
     # BACKEND
     - name: Install backend dependencies
       run: |
-        cd Backend
+        cd GetFit/Backend
         npm install
 
     - name: Run backend tests
       run: |
-        cd Backend
+        cd GetFit/Backend
         npm test --if-present
 
     # FRONTEND
     - name: Install frontend dependencies
       run: |
-        cd frontend
+        cd GetFit/frontend
         npm install
 
     - name: Build frontend
       run: |
-        cd frontend
+        cd GetFit/frontend
         npm run build --if-present
 
   
