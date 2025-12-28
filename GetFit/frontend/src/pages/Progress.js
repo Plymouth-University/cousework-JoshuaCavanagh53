@@ -1,7 +1,6 @@
 import {
   Box,
   Typography,
-  Avatar,
   Button,
   Dialog,
   DialogTitle,
@@ -361,7 +360,6 @@ const Progress = () => {
             fontSize: "20px",
             fontWeight: "600",
             fontFamily: "Arial, sans-serif",
-            margin: 3,
           }}
         >
           Progress

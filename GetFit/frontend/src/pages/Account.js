@@ -215,7 +215,6 @@ const Account = () => {
             fontSize: "20px",
             fontWeight: "600",
             fontFamily: "Arial, sans-serif",
-            margin: 3,
           }}
         >
           Account Settings

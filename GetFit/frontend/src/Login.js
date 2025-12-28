@@ -241,8 +241,7 @@ const LoginPage = () => {
                     if (!response.ok) {
                       throw new Error(`Server error: ${response.status}`);
                     }
-                    // Parse the JSON response
-                    const result = await response.json();
+                    
                     alert("registration successful"); 
                     setFormMode("login"); 
                   } catch (err) {
